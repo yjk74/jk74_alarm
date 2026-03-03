@@ -4,7 +4,6 @@ import asyncio
 from telegram import Bot
 import os
 
-# 설정 값 (토큰과 ID는 그대로 유지)
 TOKEN = "8643915197:AAHAxeM7oSiOqzEk4KOMQ52qicRMXABE7S"
 CHAT_ID = "8698887012"
 
@@ -22,59 +21,66 @@ async def send_msg(text):
         print(f"텔레그램 전송 실패: {e}")
 
 async def run():
-    # 저장된 마지막 글 읽기
-    last_titles = []
+    # 저장된 데이터 읽기 (딕셔너리 형태로 관리하여 사이트별 매칭 정확도 향상)
+    last_titles_dict = {}
     if os.path.exists("last_titles.txt"):
         with open("last_titles.txt", "r", encoding="utf-8") as f:
-            last_titles = [line.strip() for line in f.readlines()]
+            for line in f:
+                if ":" in line:
+                    s_name, s_title = line.strip().split(":", 1)
+                    last_titles_dict[s_name] = s_title
 
-    new_titles = []
-    # 브라우저처럼 보이기 위한 헤더 보강
+    current_titles = []
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
     }
 
     for site in SITES:
         try:
-            # verify=False를 추가해 SSL 보안 인증 에러 방지 (필요시)
-            res = requests.get(site['url'], headers=headers, timeout=20)
+            # SSL 인증 에러 방지를 위해 verify=False 추가 검토
+            res = requests.get(site['url'], headers=headers, timeout=20, verify=True)
+            res.raise_for_status()
             
-            if res.status_code != 200:
-                print(f"Error {site['name']}: Status Code {res.status_code}")
-                continue
-
             soup = BeautifulSoup(res.text, 'html.parser')
-            row = soup.select_one(site['selector'])
+            rows = soup.select(site['selector']) # select_one 대신 전체 행을 가져옴
             
-            if row:
-                link_tag = row.find('a')
+            target_row = None
+            for row in rows:
+                # '공지', 'Notice' 텍스트가 포함된 행은 건너뜀 (사이트마다 다를 수 있음)
+                if "공지" in row.get_text() or "NOTICE" in row.get_text().upper():
+                    continue
+                target_row = row
+                break # 공지가 아닌 첫 번째 행을 찾으면 중단
+
+            if target_row:
+                link_tag = target_row.find('a')
                 if not link_tag: continue
                 
                 title = link_tag.get_text(strip=True)
+                # 제목이 너무 짧거나 공백인 경우 방지
+                if not title:
+                    title = link_tag.get('title', '제목 없음').strip()
+
                 link = link_tag.get('href')
-                
                 if link.startswith('/'): link = site['base_url'] + link
                 elif not link.startswith('http'): link = site['url'].rsplit('/', 1)[0] + '/' + link
                 
-                # 새로운 글 체크 로직 개선
-                if title not in last_titles:
-                    print(f"새 공고 발견: {title}")
+                # 이전 저장된 제목과 비교
+                if site['name'] not in last_titles_dict or last_titles_dict[site['name']] != title:
+                    print(f"[{site['name']}] 새 공고 발견: {title}")
                     msg = f"<b>[새 공고 - {site['name']}]</b>\n{title}\n<a href='{link}'>👉 상세보기</a>"
                     await send_msg(msg)
-                
-                new_titles.append(title)
-            else:
-                print(f"{site['name']}: 게시글을 찾을 수 없습니다 (Selector 확인 필요)")
-
+                    last_titles_dict[site['name']] = title
+                else:
+                    print(f"[{site['name']}] 새로운 글 없음")
+            
         except Exception as e:
             print(f"Error {site['name']}: {e}")
 
-    # 현재 확인한 글들을 저장 (성공한 것들만 업데이트 방지 위해 로직 유지)
-    if new_titles:
-        with open("last_titles.txt", "w", encoding="utf-8") as f:
-            f.write("\n".join(new_titles))
+    # 최종 상태 저장
+    with open("last_titles.txt", "w", encoding="utf-8") as f:
+        for s_name, s_title in last_titles_dict.items():
+            f.write(f"{s_name}:{s_title}\n")
 
 if __name__ == "__main__":
     asyncio.run(run())
