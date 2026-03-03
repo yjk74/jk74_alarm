@@ -4,7 +4,7 @@ import asyncio
 from telegram import Bot
 import os
 
-TOKEN = "8643915197:AAHAxeM7oSiOqzEk4KOMQ52qicRMXABE7S"
+TOKEN = "8643915197:AAHAxeM7oSIoQzxEk4KOMQ52QicRMXABE7s"
 CHAT_ID = "8698887012"
 
 SITES = [
