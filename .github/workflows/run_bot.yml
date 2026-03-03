@@ -2,14 +2,14 @@ name: 1Hour Bot Run
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *' # 매 시간 정각에 실행
+  workflow_dispatch:    # 수동 실행 버튼 활성화
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write   # 파일 수정 권한 허용
     steps:
       - uses: actions/checkout@v3
 
