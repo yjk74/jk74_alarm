@@ -75,6 +75,6 @@ async def run():
             f.write(f"{s_name}:{s_val}\n")
 
 if __name__ == "__main__":
-    # 실행될 때마다 무조건 메시지를 보내 살아있는지 확인합니다.
-    asyncio.run(send_msg("🚀 봇이 정상적으로 체크를 시작했습니다!"))
+    # 이 줄을 추가하면 '변동 사항'과 상관없이 무조건 메시지가 옵니다.
+    asyncio.run(send_msg("🚀 봇이 정상 작동 중입니다! (강제 테스트)")) 
     asyncio.run(run())
