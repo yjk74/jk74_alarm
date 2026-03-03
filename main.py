@@ -101,6 +101,6 @@ async def run():
             f.write(f"{s_name}:{s_val}\n")
 
 if __name__ == "__main__":
-    # 아래 한 줄을 추가하면 실행될 때마다 무조건 메시지가 옵니다.
-    asyncio.run(send_msg("🚀 채용공고 체크를 시작합니다! (정상 가동 중)"))
+    # 실행될 때마다 나에게 확인 메시지를 보냅니다.
+    asyncio.run(send_msg("🚀 봇이 지금 체크를 시작합니다!")) 
     asyncio.run(run())
